@@ -10,15 +10,16 @@ import cv2
 import numpy as np  # alias
 from wifi_testing import get_wifi_info
 from tello_remove_bad import remove_bad_images
-import tello_callibration
+from tello_callibration import get_matrix 
 
 
-def main():
+def main(chessboard_size, frame_size, chessboard_square_size):
+
     #added tello_name 
-    TELLO_NAME = get_wifi_info()
-    TELLOIMAGES_DIR = f"telloImages_{TELLO_NAME}"
-    if not os.path.exists(TELLOIMAGES_DIR):
-        os.makedirs(TELLOIMAGES_DIR)
+    tello_name = get_wifi_info()
+    telloimages_dir = f"telloImages_{tello_name}"
+    if not os.path.exists(telloimages_dir):
+        os.makedirs(telloimages_dir)
     tello_drone = tello.Tello()
     tello_drone.connect()
     battery = tello_drone.get_battery()
@@ -37,7 +38,7 @@ def main():
         img = framerad.frame
         counter += 1
         if counter % 5 == 0:
-            imageFileName = os.path.join(TELLOIMAGES_DIR,f"{TELLO_NAME}{datetime.now()}.png")
+            imageFileName = os.path.join(telloimages_dir,f"{tello_name}{datetime.now()}.png")
             cv2.imwrite(imageFileName,img)
             cv2.imshow("Image", img)
         keycode = cv2.waitKey(5)
@@ -47,22 +48,18 @@ def main():
             break
     tello_drone.streamoff()
     cv2.destroyAllWindows()
-    remove_bad_images()
-    tello_callibration()
+    remove_bad_images(tello_name, chessboard_size, frame_size)
+    get_matrix(tello_name, chessboard_size, chessboard_square_size, frame_size)
     
     
-
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--filename", default=None, type=str)
-    parser.add_argument("--fps", default=30, type=int)
+    parser.add_argument("--chessboard_width", default=6, type=int)
+    parser.add_argument("--chessboard_height", default=6, type=int)
+    parser.add_argument("--chessboard_square_size", default=18, type=int)
     parser.add_argument("--width", default=960, type=int)
     parser.add_argument("--height", default=720, type=int)
     args = parser.parse_args()
-    if args.filename is None:
-        now = datetime.now()
-        dt_string = now.strftime("%Y%m%d_%H%M")  # Format DateTime
-    else:
-        file_path = args.filename
-    main()
+    chessboard_size = (args.chessboard_width, args.chessboard_height)
+    frame_size = (args.width, args.height)
+    main(chessboard_size, frame_size, args.chessboard_square_size)
