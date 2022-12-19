@@ -1,108 +1,83 @@
 import numpy as np
-import cv2 
-import glob
+import cv2
 import os
+from wifi_testing import get_wifi_info
+import json
+
+def get_matrix(tello_name, chessboardSize, size_of_chessboard_squares_mm, frameSize):
+    img_location = f"telloImages_{tello_name}"
+
+    ################ FIND CHESSBOARD CORNERS - OBJECT POINTS AND IMAGE POINTS #############################
 
 
-chessboardSize = (8,10)
-frameSize = (960,720)
-size_of_chessboard_squares_mm = 18
+    # termination criteria
+    criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
 
-################ FIND CHESSBOARD CORNERS - OBJECT POINTS AND IMAGE POINTS #############################
+    # prepare object points, like (0,0,0), (1,0,0), (2,0,0) ....,(6,5,0)
+    objp = np.zeros((chessboardSize[0] * chessboardSize[1], 3), np.float32)
+    objp[:,:2] = np.mgrid[0:chessboardSize[0],0:chessboardSize[1]].T.reshape(-1,2)
 
-
-# termination criteria
-criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
-
-# prepare object points, like (0,0,0), (1,0,0), (2,0,0) ....,(6,5,0)
-objp = np.zeros((chessboardSize[0] * chessboardSize[1], 3), np.float32)
-objp[:,:2] = np.mgrid[0:chessboardSize[0],0:chessboardSize[1]].T.reshape(-1,2)
-
-objp = objp * size_of_chessboard_squares_mm
+    objp = objp * size_of_chessboard_squares_mm
 
 
-# Arrays to store object points and image points from all the images.
-objpoints = [] # 3d point in real world space
-imgpoints = [] # 2d points in image plane.
+    # Arrays to store object points and image points from all the images.
+    objpoints = [] # 3d point in real world space
+    imgpoints = [] # 2d points in image plane.
+
+    counter = 0
+
+    print("Begin loading images")
+    img_locationList = os.listdir(img_location)
+    #if this breaks use glob
+    for afile in img_locationList:
+        if afile.endswith(".png"):
+            if counter % 5 == 0:
+                print(f"image {counter} of {len(os.listdir(img_location))} was loaded\n")
+                img = cv2.imread(os.path.join(img_location, afile))
+                gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+
+                # Find the chess board corners
+                ret, corners = cv2.findChessboardCorners(gray, chessboardSize, None)
+                # If found, add object points, image points (after refining them)
+                if ret == True:
+                    objpoints.append(objp)
+                    corners2 = cv2.cornerSubPix(gray, corners, (11,11), (-1,-1), criteria)
+                    imgpoints.append(corners)
+
+            counter += 1
 
 
-images = glob.glob(os.path.join('calibration_images' ,'*.png'))
-counter = 0
+    ############## CALIBRATION #######################################################
+    print("Begin camera calibration")
+    ret, cameraMatrix, dist, rvecs, tvecs = cv2.calibrateCamera(objpoints, imgpoints,
+        frameSize, None, None)
+    print("end camera calibration")
 
-print("Begin loading images")
-print(len(images))
-for image in images:
-    if counter % 5 == 0:
-        print(f"image {counter} of {len(images)} was loaded\n")
-        img = cv2.imread(image)
-        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-        
-        # Find the chess board corners
-        ret, corners = cv2.findChessboardCorners(gray, chessboardSize, None)
-        # If found, add object points, image points (after refining them)
-        if ret == True:
+    ############## UNDISTORTION #####################################################
+    #get first image in image_directory for cropping
+    counter = 0
+    #gets first file(should be image) in the image location, and crops for newcameramatrix
+    img = cv2.imread(os.path.join(img_location, img_locationList[0]))
+    h,  w = img.shape[:2]
+    newCameraMatrix, roi = cv2.getOptimalNewCameraMatrix(cameraMatrix, dist, (w,h), 1, (w,h))
+    #print(newCameraMatrix)
+    print("Begin writing matrix file")
 
-            objpoints.append(objp)
-            corners2 = cv2.cornerSubPix(gray, corners, (11,11), (-1,-1), criteria)
-            imgpoints.append(corners)
+    out_camera_matrix = {'fx': newCameraMatrix[0][0], 'cx': newCameraMatrix[0][2], 'fy': newCameraMatrix[1][1],
+                            'cy': newCameraMatrix[1][2]}
+    out_camera_matrix_json = json.dumps(out_camera_matrix, indent=4)
 
-            # Draw and display the corners
-            #cv2.drawChessboardCorners(img, chessboardSize, corners2, ret)
-            #cv2.imshow('img', img)
-            #cv2.waitKey(1000)
-    counter += 1
+    with open(f'camera_matrix_{tello_name}.json', 'w') as f:
+        f.write(out_camera_matrix_json)
 
-cv2.destroyAllWindows()
+    # Reprojection Error
+    mean_error = 0
 
+    for i in range(len(objpoints)):
+        imgpoints2, _ = cv2.projectPoints(objpoints[i], rvecs[i], tvecs[i], newCameraMatrix, dist)
+        error = cv2.norm(imgpoints[i], imgpoints2, cv2.NORM_L2)/len(imgpoints2)
+        mean_error += error
 
+    print( "total error: {}".format(mean_error/len(objpoints)) )
 
-
-############## CALIBRATION #######################################################
-print("Begin camera calibration")
-ret, cameraMatrix, dist, rvecs, tvecs = cv2.calibrateCamera(objpoints, imgpoints, frameSize, None, None)
-print("end camera calibration")
-
-############## UNDISTORTION #####################################################
-
-img = cv2.imread(os.path.join('calibration_images','image_caliberation102.png'))
-h,  w = img.shape[:2]
-newCameraMatrix, roi = cv2.getOptimalNewCameraMatrix(cameraMatrix, dist, (w,h), 1, (w,h))
-print(newCameraMatrix)
-
-print("Begin writing matrix file")
-
-with open('camera_matrix_tellofdac29_20221130.txt', 'w') as f:
-    f.write(str(newCameraMatrix))
-
-
-# Undistort
-dst = cv2.undistort(img, cameraMatrix, dist, None, newCameraMatrix)
-
-# crop the image
-x, y, w, h = roi
-dst = dst[y:y+h, x:x+w]
-cv2.imwrite('caliResult1.png', dst)
-
-
-
-# Undistort with Remapping
-mapx, mapy = cv2.initUndistortRectifyMap(cameraMatrix, dist, None, newCameraMatrix, (w,h), 5)
-dst = cv2.remap(img, mapx, mapy, cv2.INTER_LINEAR)
-
-# crop the image
-x, y, w, h = roi
-dst = dst[y:y+h, x:x+w]
-cv2.imwrite('caliResult2.png', dst)
-
-
-
-
-# Reprojection Error
-mean_error = 0
-
-for i in range(len(objpoints)):
-    imgpoints2, _ = cv2.projectPoints(objpoints[i], rvecs[i], tvecs[i], cameraMatrix, dist)
-    error = cv2.norm(imgpoints[i], imgpoints2, cv2.NORM_L2)/len(imgpoints2)
-    mean_error += error
-
-print( "total error: {}".format(mean_error/len(objpoints)) )
+    cv2.destroyAllWindows()
