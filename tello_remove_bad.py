@@ -2,14 +2,16 @@
 import os
 import cv2
 from shutil import move
+from wifi_testing import get_wifi_info
 
 #constants
-CHESSBOARD_SIZE = (8,10)
+CHESSBOARD_SIZE = (6,6)
 FRAME_SIZE = (960,720)
-IMG_LOCATION = 'calibration_images'
-DELETED_DIR = 'deleted_pics'
+TELLO_NAME = get_wifi_info()
+IMG_LOCATION = f"telloImages_{TELLO_NAME}"
+DELETED_DIR = f'deleted_pics_'
 
-def main():
+def remove_bad_images():
     # Arrays to store object points and image points from all the images.
     # UNUSED LISTS FOR NOW
     objpoints = []  # 3d point in real world space
@@ -53,6 +55,3 @@ def main():
             print(f"loading : {(counter/dir_length)*100}%")
     #print total chessboards found
     print(f"{ret_counter} chessboards found out of {dir_length} images.")
-
-if __name__ == "__main__":
-    main()
