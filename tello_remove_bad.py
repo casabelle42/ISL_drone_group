@@ -1,17 +1,10 @@
-
 import os
 import cv2
 from shutil import move
-from wifi_testing import get_wifi_info
 
-#constants
-CHESSBOARD_SIZE = (6,6)
-FRAME_SIZE = (960,720)
-TELLO_NAME = get_wifi_info()
-IMG_LOCATION = f"telloImages_{TELLO_NAME}"
-DELETED_DIR = f'deleted_pics_'
-
-def remove_bad_images():
+def remove_bad_images(name, chessboard_size, frame_size):
+    img_location = f'telloImages_{name}'
+    DELETED_DIR = os.path.join(img_location, f'deleted_pics_')
     # Arrays to store object points and image points from all the images.
     # UNUSED LISTS FOR NOW
     objpoints = []  # 3d point in real world space
@@ -26,7 +19,7 @@ def remove_bad_images():
         os.makedirs(DELETED_DIR)
         
     # get list of files in image directory, but only keep the ones that end in .png
-    image_dirs = os.listdir(IMG_LOCATION)
+    image_dirs = os.listdir(img_location)
     files_with_images = [x for x in image_dirs if x.endswith(".png")]
     
     #establish dir length before modifying
@@ -34,10 +27,10 @@ def remove_bad_images():
     
     #for file in dir list
     for afile in files_with_images:
-        img = cv2.imread(os.path.join(IMG_LOCATION, afile))
+        img = cv2.imread(os.path.join(img_location, afile))
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
         # Find the chess board corners
-        ret, corners = cv2.findChessboardCorners(gray, CHESSBOARD_SIZE, None)
+        ret, _ = cv2.findChessboardCorners(gray, chessboard_size, None)
         #if chessboard found
         if ret:
             ret_counter +=1
@@ -45,7 +38,7 @@ def remove_bad_images():
         #if not found
         else:
             print(f"{afile} - no chessboard found")
-            src = os.path.join(IMG_LOCATION, afile)
+            src = os.path.join(img_location, afile)
             dest = os.path.join(DELETED_DIR, afile)
             move(src, dest)
         #total counter increment
