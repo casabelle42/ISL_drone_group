@@ -10,7 +10,7 @@ import cv2
 import numpy as np  # alias
 from wifi_testing import get_wifi_info
 from tello_remove_bad import remove_bad_images
-from tello_calibration import get_matrix 
+from tello_calibration import get_matrix
 
 
 def main(chessboard_size, frame_size, chessboard_square_size):
