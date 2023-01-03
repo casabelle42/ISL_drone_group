@@ -12,6 +12,24 @@ import json
 from math import sqrt
 
 
+def distance_to_camera(irl_width, focal_length, per_width):
+    """function that returns the distance from a measured to camera
+    Parameters
+    ----------
+    irl_width: float
+        real life width of the marker
+    focal_length: float
+        focal length of camera
+    per_width: int
+        perceived width in pixels
+    
+    Returns
+    -------
+    distance: float
+        distance from marker to camera
+    """ 
+    distance = (irl_width * focal_length) / per_width
+    return distance
 
 def get_apriltag_coords(a_tags):
     """function that returns list of apriltag center coordinates
@@ -33,37 +51,26 @@ def get_apriltag_coords(a_tags):
         a_tag_centers.append([cX, cY])
     return a_tag_centers
 
-def find_box(a_tag_centers, img):
-    """function that will draw a box and midpoint of the box with given april tag list
+def find_box(a_tag):
+    """function that will find the corners of the april tag
     Parameters
     ----------
-    a_tag_centers: list 
-        list of centers of apriltags
-    
-    img : image
-        image to be manipulated
+    a_tag: object 
+        a simple april tag
     
     Returns
     -------
-    img : image
-        image that was manipulated
-    center : tuple
-        center of the apriltag array
+    four_corners : tuple
+        four corners of the april tag
     """  
     
-    center_array = np.array(a_tag_centers)
-    pt_a = int(min(center_array[:, 0])), int(max(center_array[:, 1]))
-    pt_b = int(min(center_array[:, 0])), int(min(center_array[:, 1]))
-    pt_c = int(max(center_array[:, 0])), int(min(center_array[:, 1]))
-    pt_d = int(max(center_array[:, 0])), int(max(center_array[:, 1]))
-    center_x = int((max(center_array[:, 0]) + min(center_array[:, 0]))/2)
-    center_y = int((max(center_array[:, 1]) + min(center_array[:, 1]))/2)
-    center = (center_x, center_y)
-    cv2.line(img, pt_a, pt_b, (255, 0, 0), 4)
-    cv2.line(img, pt_b, pt_c, (255, 0, 0), 4)
-    cv2.line(img, pt_c, pt_d, (255, 0, 0), 4)
-    cv2.line(img, pt_d, pt_a, (255, 0, 0), 4)
-    return img, center
+    ptA, ptB, ptC, ptD = a_tag.corners
+    ptA = (int(ptA[0]), int(ptA[1]))
+    ptB = (int(ptB[0]), int(ptB[1]))
+    ptC = (int(ptC[0]), int(ptC[1]))
+    ptD = (int(ptD[0]), int(ptD[1]))
+    four_corners = (ptA, ptB, ptC, ptD)
+    return four_corners
 
 def read_apriltags(frame, camera_matrix):
     """function that will provide apriltag detector results
@@ -147,8 +154,8 @@ def main(file_path, fps, width, height, tello_name):
     
 
     focal_length = sqrt(camera_matrix["fx"]**2 + camera_matrix["fy"]**2)
-    print(focal_length)
-    
+
+
     # create the video writer
     FOURCC = cv2.VideoWriter_fourcc(*'mp4v')
     out = cv2.VideoWriter(file_path, FOURCC, fps, (width, height), True)
@@ -180,16 +187,18 @@ def main(file_path, fps, width, height, tello_name):
         # SEND VELOCITY VALUES TO TELLO
         direction = 0
         if results:
-            centers = get_apriltag_coords(results)
-            img, box_center = find_box(centers, img)
-            centerX = int(box_center[0])
-            centerY = int(box_center[1])
-            cv2.line(img, (centerX, centerY), centerCAM, (123, 255, 123), 2)
-            cv2.circle(img, (centerX, centerY), 5, (255, 30, 12), -1)
-            direction = get_direction(centerX, centerY, img, width, height, DEADZONE, direction)
             print(f"frame {frame_counter}")
-            print(f"rotational matrix \n {results[0].pose_R}")
-            print(f"translational matrix \n {results[0].pose_t}")
+            if len(results) == 1:
+                pA, pB, pC, pD = find_box(results[0])
+                # get width of box corners (ptA, ptB)
+                centerX = int(results[0].center[0])
+                centerY = int(results[0].center[1])
+                cv2.line(img, (centerX, centerY), centerCAM, (123, 255, 123), 2)
+                cv2.circle(img, (centerX, centerY), 5, (255, 30, 12), -1)
+                direction = get_direction(centerX, centerY, img, width, height, DEADZONE, direction)
+                print(f"rotational matrix \n {results[0].pose_R}")
+                print(f"translational matrix \n {results[0].pose_t}")
+
 
         frame_counter += 1
 
