@@ -9,6 +9,7 @@ import cv2
 import numpy as np #alias'
 import time
 import json
+from math import sqrt
 
 
 
@@ -143,6 +144,11 @@ def main(file_path, fps, width, height, tello_name):
             camera_matrix = json.load(f)
     else:
         camera_matrix = {}
+    
+
+    focal_length = sqrt(camera_matrix["fx"]**2 + camera_matrix["fy"]**2)
+    print(focal_length)
+    
     # create the video writer
     FOURCC = cv2.VideoWriter_fourcc(*'mp4v')
     out = cv2.VideoWriter(file_path, FOURCC, fps, (width, height), True)
