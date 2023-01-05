@@ -5,13 +5,13 @@ from wifi_testing import get_wifi_info
 import argparse
 import pupil_apriltags as apriltags  # alias for apriltags
 import cv2
-import numpy as np #alias
+import numpy as np  # alias
 import time
 import json
 from math import sqrt
 
 
-def distance_to_camera(irl_width, focal_length, pixel_width):
+def get_distance_to_camera(irl_width, focal_length, pixel_width):
     """function that returns the distance from a measured to camera
     Parameters
     ----------
@@ -21,27 +21,28 @@ def distance_to_camera(irl_width, focal_length, pixel_width):
         focal length of camera
     pixel_width: int
         perceived width of marker in pixels
-    
+
     Returns
     -------
     distance: float
         distance from marker to camera
-    """ 
+    """
     distance = (irl_width * focal_length) / pixel_width
     return distance
+
 
 def get_apriltag_coords(a_tags):
     """function that returns list of apriltag center coordinates
     Parameters
     ----------
-    a_tags: list 
+    a_tags: list
         a list of apriltags
-    
+
     Returns
     -------
     a_tag_centers : list
-        a list of centers of detected apriltags 
-    """  
+        a list of centers of detected apriltags
+    """
 
     a_tag_centers = []
     for tag in a_tags:
@@ -50,19 +51,20 @@ def get_apriltag_coords(a_tags):
         a_tag_centers.append([cX, cY])
     return a_tag_centers
 
+
 def find_box(a_tag):
     """function that will find the corners of the april tag
     Parameters
     ----------
-    a_tag: object 
+    a_tag: object
         a simple april tag
-    
+
     Returns
     -------
     four_corners : tuple
         four corners of the april tag
-    """  
-    
+    """
+
     ptA, ptB, ptC, ptD = a_tag.corners
     ptA = (int(ptA[0]), int(ptA[1]))
     ptB = (int(ptB[0]), int(ptB[1]))
@@ -71,17 +73,18 @@ def find_box(a_tag):
     four_corners = (ptA, ptB, ptC, ptD)
     return four_corners
 
+
 def read_apriltags(frame, camera_matrix):
     """function that will provide apriltag detector results
     Parameters
     ----------
-    
-    frame: image 
+
+    frame: image
         image to detect apriltags in
-    
+
     estimage_tag : boolean
         flag to estimate tag pos
-    
+
     camera_pars : list
         list of camera parameters to estimate the tag pos
     Returns
@@ -94,80 +97,79 @@ def read_apriltags(frame, camera_matrix):
         camera_pars = None
     else:
         estimate_tag = True
-        camera_pars = [camera_matrix['fx'],camera_matrix['fy'],camera_matrix['cx'],camera_matrix['cy']]
+        camera_pars = [camera_matrix['fx'], camera_matrix['fy'], camera_matrix['cx'], camera_matrix['cy']]
         detector = apriltags.Detector(families='tag36h11')
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         results = detector.detect(gray, estimate_tag_pose=estimate_tag, camera_params=camera_pars, tag_size=.025)
     return results
 
+
 def get_direction(cx, cy, img, frameWidth, frameHeight, deadZone):
     dir = 0
-    if (cx < int(frameWidth/2) - deadZone):
-        cv2.putText(img, " GO LEFT " , (20, 50), cv2.FONT_HERSHEY_COMPLEX,1,(0, 0, 255), 3)
+    if (cx < int(frameWidth / 2) - deadZone):
+        cv2.putText(img, " GO LEFT ", (20, 50), cv2.FONT_HERSHEY_COMPLEX, 1, (0, 0, 255), 3)
         dir = 1
     elif (cx > int(frameWidth / 2) + deadZone):
-        cv2.putText(img, " GO RIGHT ", (20, 50), cv2.FONT_HERSHEY_COMPLEX,1,(0, 0, 255), 3)
+        cv2.putText(img, " GO RIGHT ", (20, 50), cv2.FONT_HERSHEY_COMPLEX, 1, (0, 0, 255), 3)
         dir = 2
     elif (cy < int(frameHeight / 2) - deadZone):
-        cv2.putText(img, " GO UP ", (20, 50), cv2.FONT_HERSHEY_COMPLEX,1,(0, 0, 255), 3)
+        cv2.putText(img, " GO UP ", (20, 50), cv2.FONT_HERSHEY_COMPLEX, 1, (0, 0, 255), 3)
         dir = 3
     elif (cy > int(frameHeight / 2) + deadZone):
-        cv2.putText(img, " GO DOWN ", (20, 50), cv2.FONT_HERSHEY_COMPLEX, 1,(0, 0, 255), 3)
+        cv2.putText(img, " GO DOWN ", (20, 50), cv2.FONT_HERSHEY_COMPLEX, 1, (0, 0, 255), 3)
         dir = 4
     return dir
 
 
-def main(file_path, fps, width, height, tello_name):
+def main(file_path, fps, width, height, marker_width, tello_name):
     """function that will provide apriltag detector results
     Parameters
     ----------
-    
-    file_path : string 
-        full directory path to where the video file will be created. 
-        Default is None, so will create a datetime timestamp and create 
+
+    file_path : string
+        full directory path to where the video file will be created.
+        Default is None, so will create a datetime timestamp and create
         the file in current directory
-    
+
     fps : int
         the number of frames per second for video capture and writing
-    
+
     width : int
         width of camera image
-    
+
     height : int
         height of camera image
-        
+
     Returns
     -------
     None
-    """  
-    #CONSTANTS
+    """
+    # CONSTANTS
     DEADZONE = 100
-    #Variables
+    # Variables
     json_path = f"camera_matrix_{tello_name}.json"
     if os.path.exists(json_path):
         with open(json_path) as f:
             camera_matrix = json.load(f)
     else:
         camera_matrix = {}
-    
 
-    focal_length = sqrt(camera_matrix["fx"]**2 + camera_matrix["fy"]**2)
-
+    focal_length = sqrt(camera_matrix["fx"] ** 2 + camera_matrix["fy"] ** 2)
 
     # create the video writer
     FOURCC = cv2.VideoWriter_fourcc(*'mp4v')
     out = cv2.VideoWriter(file_path, FOURCC, fps, (width, height), True)
-    
-    #Counter
-    testDrone = False   #False for flight, True for testing (flight disabled)
 
-    #connect to the tello
+    # Counter
+    testDrone = False  # False for flight, True for testing (flight disabled)
+
+    # connect to the tello
     drone = tello.Tello()
     drone.connect()
     battery = drone.get_battery()
 
     print(f"Drone Battery: {battery}")
-    
+
     drone.streamon()  # camera on
     time.sleep(2)
     if not testDrone:
@@ -175,11 +177,10 @@ def main(file_path, fps, width, height, tello_name):
 
     frame_counter = 0
     while True:
-        
 
         framerad = drone.get_frame_read()
         img = framerad.frame
-        results = read_apriltags(img,camera_matrix)
+        results = read_apriltags(img, camera_matrix)
         centerCAM = (int(width / 2), int(height / 2))
 
         # SEND VELOCITY VALUES TO TELLO
@@ -188,7 +189,9 @@ def main(file_path, fps, width, height, tello_name):
             if len(results) == 1:
                 pA, pB, pC, pD = find_box(results[0])
                 # get width of box corners (pA, pB)
-                #corner_width = abs(np.subtract(pB, pA))
+                corner_width = abs(np.subtract(pB, pA))
+                marker_distance = get_distance_to_camera(marker_width, focal_length, corner_width)
+                print(marker_distance)
                 centerX = int(results[0].center[0])
                 centerY = int(results[0].center[1])
                 cv2.line(img, (centerX, centerY), centerCAM, (123, 255, 123), 2)
@@ -197,9 +200,7 @@ def main(file_path, fps, width, height, tello_name):
                 print(f"rotational matrix \n {results[0].pose_R}")
                 print(f"translational matrix \n {results[0].pose_t}")
 
-
         frame_counter += 1
-
 
         if direction == 1:
             drone.left_right_velocity = -20
@@ -212,7 +213,7 @@ def main(file_path, fps, width, height, tello_name):
 
         elif direction == 4:
             drone.up_down_velocity = -20
-            
+
         else:
             drone.left_right_velocity = 0
             drone.for_back_velocity = 0
@@ -221,18 +222,18 @@ def main(file_path, fps, width, height, tello_name):
 
         # SEND VELOCITY VALUES TO TELLO
         if drone.send_rc_control:
-            drone.send_rc_control(drone.left_right_velocity, drone.for_back_velocity, drone.up_down_velocity, drone.yaw_velocity)
+            drone.send_rc_control(drone.left_right_velocity, drone.for_back_velocity, drone.up_down_velocity,
+                                  drone.yaw_velocity)
         print(dir)
 
-        
         cv2.circle(img, centerCAM, 5, (20, 30, 12), -1)
-        #if drone is centered change gate square from blue to green
+        # if drone is centered change gate square from blue to green
 
         out.write(img)
         cv2.imshow("Image", img)
         keycode = cv2.waitKey(5)
         if (keycode & 0xFF) == ord('q'):
-            #tello.land()
+            # tello.land()
             break
 
     out.release()
@@ -241,13 +242,15 @@ def main(file_path, fps, width, height, tello_name):
     drone.land()
     cv2.destroyAllWindows()
 
+
 if __name__ == "__main__":
     tello_name = get_wifi_info()
     parser = argparse.ArgumentParser()
-    parser.add_argument("-f", "--filename", default=None, help='path to filename for video')
+    parser.add_argument("--filename", default=None, help='path to filename for video')
     parser.add_argument("--fps", type=int, default=30, help="frames per second for video")
     parser.add_argument("--width", type=int, default=960, help="width of camera image")
     parser.add_argument("--height", type=int, default=720, help="height of camera image")
+    parser.add_argument("-mw","--marker_width", type=float, default=0.038, help="physical size of the marker in meters")
     args = parser.parse_args()
 
     if args.filename is None:
@@ -256,8 +259,7 @@ if __name__ == "__main__":
         file_path = f"{tello_name}_apriltag_detections_{dt_string}.mp4"  # added DateTime for TimeStamp
     else:
         file_path = args.filename
-       
-    main(file_path, args.fps, args.width, args.height, tello_name)
-                      
-                      
-                      
+
+    main(file_path, args.fps, args.width, args.height, args.marker_width, tello_name)
+
+
