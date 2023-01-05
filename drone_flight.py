@@ -1,18 +1,17 @@
 import os.path
-
 from djitellopy import tello
 from datetime import datetime
 from wifi_testing import get_wifi_info
 import argparse
 import pupil_apriltags as apriltags  # alias for apriltags
 import cv2
-import numpy as np #alias'
+import numpy as np #alias
 import time
 import json
 from math import sqrt
 
 
-def distance_to_camera(irl_width, focal_length, per_width):
+def distance_to_camera(irl_width, focal_length, pixel_width):
     """function that returns the distance from a measured to camera
     Parameters
     ----------
@@ -20,15 +19,15 @@ def distance_to_camera(irl_width, focal_length, per_width):
         real life width of the marker
     focal_length: float
         focal length of camera
-    per_width: int
-        perceived width in pixels
+    pixel_width: int
+        perceived width of marker in pixels
     
     Returns
     -------
     distance: float
         distance from marker to camera
     """ 
-    distance = (irl_width * focal_length) / per_width
+    distance = (irl_width * focal_length) / pixel_width
     return distance
 
 def get_apriltag_coords(a_tags):
@@ -101,8 +100,9 @@ def read_apriltags(frame, camera_matrix):
         results = detector.detect(gray, estimate_tag_pose=estimate_tag, camera_params=camera_pars, tag_size=.025)
     return results
 
-def get_direction(cx, cy, img, frameWidth, frameHeight, deadZone, dir):
-    if (cx <int(frameWidth/2)-deadZone):
+def get_direction(cx, cy, img, frameWidth, frameHeight, deadZone):
+    dir = 0
+    if (cx < int(frameWidth/2) - deadZone):
         cv2.putText(img, " GO LEFT " , (20, 50), cv2.FONT_HERSHEY_COMPLEX,1,(0, 0, 255), 3)
         dir = 1
     elif (cx > int(frameWidth / 2) + deadZone):
@@ -115,8 +115,6 @@ def get_direction(cx, cy, img, frameWidth, frameHeight, deadZone, dir):
         cv2.putText(img, " GO DOWN ", (20, 50), cv2.FONT_HERSHEY_COMPLEX, 1,(0, 0, 255), 3)
         dir = 4
     return dir
-
-
 
 
 def main(file_path, fps, width, height, tello_name):
@@ -185,17 +183,17 @@ def main(file_path, fps, width, height, tello_name):
         centerCAM = (int(width / 2), int(height / 2))
 
         # SEND VELOCITY VALUES TO TELLO
-        direction = 0
         if results:
             print(f"frame {frame_counter}")
             if len(results) == 1:
                 pA, pB, pC, pD = find_box(results[0])
-                # get width of box corners (ptA, ptB)
+                # get width of box corners (pA, pB)
+                #corner_width = abs(np.subtract(pB, pA))
                 centerX = int(results[0].center[0])
                 centerY = int(results[0].center[1])
                 cv2.line(img, (centerX, centerY), centerCAM, (123, 255, 123), 2)
                 cv2.circle(img, (centerX, centerY), 5, (255, 30, 12), -1)
-                direction = get_direction(centerX, centerY, img, width, height, DEADZONE, direction)
+                direction = get_direction(centerX, centerY, img, width, height, DEADZONE)
                 print(f"rotational matrix \n {results[0].pose_R}")
                 print(f"translational matrix \n {results[0].pose_t}")
 
@@ -220,8 +218,8 @@ def main(file_path, fps, width, height, tello_name):
             drone.for_back_velocity = 0
             drone.up_down_velocity = 0
             drone.yaw_velocity = 0
-        # SEND VELOCITY VALUES TO TELLO
 
+        # SEND VELOCITY VALUES TO TELLO
         if drone.send_rc_control:
             drone.send_rc_control(drone.left_right_velocity, drone.for_back_velocity, drone.up_down_velocity, drone.yaw_velocity)
         print(dir)
@@ -260,5 +258,6 @@ if __name__ == "__main__":
         file_path = args.filename
        
     main(file_path, args.fps, args.width, args.height, tello_name)
+                      
                       
                       
