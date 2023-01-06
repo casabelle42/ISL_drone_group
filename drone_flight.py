@@ -74,7 +74,7 @@ def find_box(a_tag):
     return four_corners
 
 
-def read_apriltags(frame, camera_matrix):
+def read_apriltags(frame, camera_matrix, tag_size):
     """function that will provide apriltag detector results
     Parameters
     ----------
@@ -100,7 +100,7 @@ def read_apriltags(frame, camera_matrix):
         camera_pars = [camera_matrix['fx'], camera_matrix['fy'], camera_matrix['cx'], camera_matrix['cy']]
         detector = apriltags.Detector(families='tag36h11')
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        results = detector.detect(gray, estimate_tag_pose=estimate_tag, camera_params=camera_pars, tag_size=.025)
+        results = detector.detect(gray, estimate_tag_pose=estimate_tag, camera_params=camera_pars, tag_size=tag_size)
     return results
 
 
@@ -180,7 +180,7 @@ def main(file_path, fps, width, height, marker_width, tello_name):
 
         framerad = drone.get_frame_read()
         img = framerad.frame
-        results = read_apriltags(img, camera_matrix)
+        results = read_apriltags(img, camera_matrix, marker_width)
         centerCAM = (int(width / 2), int(height / 2))
 
         # SEND VELOCITY VALUES TO TELLO
