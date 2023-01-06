@@ -190,8 +190,10 @@ def main(file_path, fps, width, height, marker_width, tello_name):
                 pA, pB, pC, pD = find_box(results[0])
                 # get width of box corners (pA, pB)
                 corner_width = abs(np.subtract(pB, pA))
+                corner_width = sqrt(corner_width[0]**2 + corner_width[1]**2)
                 marker_distance = get_distance_to_camera(marker_width, focal_length, corner_width)
                 print(marker_distance)
+                
                 centerX = int(results[0].center[0])
                 centerY = int(results[0].center[1])
                 cv2.line(img, (centerX, centerY), centerCAM, (123, 255, 123), 2)
