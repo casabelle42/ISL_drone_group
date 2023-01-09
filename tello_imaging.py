@@ -1,19 +1,93 @@
-# test
 '''
-placeholder(what the program does)
+#################################################################################################
+#
+#
+#   Fayetteville State University Intelligence Systems Laboratory (FSU-ISL)
+#
+#   Mentors:
+#           Dr. Sambit Bhattacharya
+#           Catherine Spooner
+#
+#   File Name:
+#           tello_imaging.py
+#
+#   Programmers:
+#           Antonio Ball
+#           Ryan De Jesus
+#           Garrett Davis
+#           Kalsoom Bibi
+#           Santino Sini
+#           Daniel Bigler
+#           Taryn Rozier
+#           Ashley Sutherland
+#           Tyuss Handley
+#           Adriel Alvarez
+#           Malik Brock
+#           Raymond Poythress
+#
+#  Revision     Date                        Release Comment
+#  --------  ----------  ------------------------------------------------------
+#    1.0     01/09/2023  Initial Release
+#
+#  File Description
+#  ----------------
+#  This allows for the tello to take multiple photos of a chessboard
+#  and converts the results to a matrix
+#  The photos are saved to a file with the drone's wifi name
+#  *Classes/Functions organized by order of appearance
+#
+#  OUTSIDE FILES REQUIRED
+#  ----------------------
+#   wifi_testing.py
+#   tello_remove_bad.py
+#   tello_calibration.py
+#
+#  CLASSES
+#  -------
+#   None
+#
+#  FUNCTIONS
+#  ---------
+#   main
+#
 '''
+#################################################################################################
+#Import Statements
+#################################################################################################
+
 from djitellopy import tello
 from datetime import datetime
 import os
 import argparse
 import cv2
+import time
 import numpy as np  # alias
 from wifi_testing import get_wifi_info
 from tello_remove_bad import remove_bad_images
 from tello_calibration import get_matrix
+#################################################################################################
+#Functions
+#################################################################################################
 
 
 def main(chessboard_size, frame_size, chessboard_square_size):
+    """function that returns list of apriltag center coordinates
+    Parameters
+    ----------
+    chessboard_size: tuple
+        the number of interior corners of black squares on the chessboard
+        width height
+    frame_size
+    chessboard_square_size
+
+    a_tags: int
+        a list of apriltags
+
+    Returns
+    -------
+    a_tag_centers : list
+        a list of centers of detected apriltags
+    """
 
     #added tello_name 
     tello_name = get_wifi_info()
