@@ -74,7 +74,7 @@ def find_box(a_tag):
     return four_corners
 
 
-def read_apriltags(frame, camera_matrix, tag_size):
+def read_apriltags(frame, camera_matrix, marker_width):
     """function that will provide apriltag detector results
     Parameters
     ----------
@@ -100,7 +100,7 @@ def read_apriltags(frame, camera_matrix, tag_size):
         camera_pars = [camera_matrix['fx'], camera_matrix['fy'], camera_matrix['cx'], camera_matrix['cy']]
         detector = apriltags.Detector(families='tag36h11')
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        results = detector.detect(gray, estimate_tag_pose=estimate_tag, camera_params=camera_pars, tag_size=tag_size)
+        results = detector.detect(gray, estimate_tag_pose=estimate_tag, camera_params=camera_pars, tag_size=marker_width)
     return results
 
 
@@ -161,7 +161,7 @@ def main(file_path, fps, width, height, marker_width, tello_name):
     out = cv2.VideoWriter(file_path, FOURCC, fps, (width, height), True)
 
     # Counter
-    testDrone = False  # False for flight, True for testing (flight disabled)
+    testDrone = True  # False for flight, True for testing (flight disabled)
 
     # connect to the tello
     drone = tello.Tello()
@@ -192,7 +192,7 @@ def main(file_path, fps, width, height, marker_width, tello_name):
                 corner_width = abs(np.subtract(pB, pA))
                 corner_width = sqrt(corner_width[0]**2 + corner_width[1]**2)
                 marker_distance = get_distance_to_camera(marker_width, focal_length, corner_width)
-                print(marker_distance)
+                print("marker distance", marker_distance)
                 
                 centerX = int(results[0].center[0])
                 centerY = int(results[0].center[1])
