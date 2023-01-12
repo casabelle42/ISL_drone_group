@@ -1,7 +1,65 @@
+'''
+#################################################################################################
+#
+#
+#   Fayetteville State University Intelligence Systems Laboratory (FSU-ISL)
+#
+#   Mentors:
+#           Dr. Sambit Bhattacharya
+#           Catherine Spooner
+#
+#   File Name:
+#           drone_flight.py
+#
+#   Programmers:
+#           Antonio Ball
+#           Ryan De Jesus
+#           Garrett Davis
+#           Kalsoom Bibi
+#           Santino Sini
+#           Daniel Bigler
+#           Taryn Rozier
+#           Ashley Sutherland
+#           Tyuss Handley
+#           Adriel Alvarez
+#           Malik Brock
+#           Raymond Poythress
+#
+#  Revision     Date                        Release Comment
+#  --------  ----------  ------------------------------------------------------
+#    1.0     01/12/2023  Initial Release
+#
+#  File Description
+#  ----------------
+#  This program navigates drone towards april tags
+#  
+#   
+#  
+#  
+#  
+#  *Classes/Functions organized by order of appearance
+#
+#  OUTSIDE FILES REQUIRED
+#  ----------------------
+#   wifi_testing.py
+#   
+#
+#  CLASSES
+#  -------
+#   None
+#
+#  FUNCTIONS
+#  ---------
+#   get_wifi_info
+#   main
+#
+'''
+#################################################################################################
+#Import Statements
+#################################################################################################
 import os.path
 from djitellopy import tello
 from datetime import datetime
-from wifi_testing import get_wifi_info
 import argparse
 import pupil_apriltags as apriltags  # alias for apriltags
 import cv2
@@ -10,6 +68,11 @@ import time
 import json
 from math import sqrt
 
+from wifi_testing import get_wifi_info
+
+#################################################################################################
+#Functions
+#################################################################################################
 
 def get_distance_to_camera(irl_width, focal_length, pixel_width):
     """function that returns the distance from a measured to camera
@@ -121,7 +184,7 @@ def get_direction(cx, cy, img, frameWidth, frameHeight, deadZone):
     return dir
 
 
-def main(file_path, fps, width, height, marker_width, tello_name):
+def main(file_path, fps, width, height, marker_width, tello_name, camera_matrix):
     """function that will provide apriltag detector results
     Parameters
     ----------
@@ -147,12 +210,7 @@ def main(file_path, fps, width, height, marker_width, tello_name):
     # CONSTANTS
     DEADZONE = 100
     # Variables
-    json_path = f"camera_matrix_{tello_name}.json"
-    if os.path.exists(json_path):
-        with open(json_path) as f:
-            camera_matrix = json.load(f)
-    else:
-        camera_matrix = {}
+    
 
     focal_length = sqrt(camera_matrix["fx"] ** 2 + camera_matrix["fy"] ** 2)
 
@@ -252,7 +310,8 @@ if __name__ == "__main__":
     parser.add_argument("--fps", type=int, default=30, help="frames per second for video")
     parser.add_argument("--width", type=int, default=960, help="width of camera image")
     parser.add_argument("--height", type=int, default=720, help="height of camera image")
-    parser.add_argument("-mw","--marker_width", type=float, default=0.038, help="physical size of the marker in meters")
+    parser.add_argument("--marker_width", type=float, default=0.038, help="physical size of the marker in meters")
+    parser.add_argument("--matrix_file", type=str, default=None, help ="file name of the camera matrix")
     args = parser.parse_args()
 
     if args.filename is None:
@@ -262,6 +321,23 @@ if __name__ == "__main__":
     else:
         file_path = args.filename
 
-    main(file_path, args.fps, args.width, args.height, args.marker_width, tello_name)
+    if args.matrix_file is None:
+        json_path = f"camera_matrix_{tello_name}.json"
+        if os.path.exists(json_path):
+            with open(json_path) as f:
+                camera_matrix = json.load(f)
+        else:
+            camera_matrix = {}
+    else:
+        if os.path.exists(args.matrix_file):
+            with open(args.matrix_file) as f:
+                camera_matrix = json.load(f)
+        else:
+            print("Could not locate specified file, sending empty matrix")
+            camera_matrix = {}
+
+    
+
+    main(file_path, args.fps, args.width, args.height, args.marker_width, tello_name, camera_matrix)
 
 
