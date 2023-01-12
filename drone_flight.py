@@ -167,18 +167,44 @@ def read_apriltags(frame, camera_matrix, marker_width):
     return results
 
 
-def get_direction(cx, cy, img, frameWidth, frameHeight, deadZone):
+def get_direction(centerX, centerY, img, frameWidth, frameHeight, deadZone):
+    """function that returns the direction the drone should move in
+    ----------
+
+    centerX : int
+        the center of the image on the x-axis
+
+    centerY : int
+        the center of the image on the y-axis
+
+    img : array
+        a camera image
+
+    frameWidth : int
+        width of camera image
+
+    frameHeight: int
+        height of camera image
+
+    deadZone: int
+        a margin of error for the center calculation
+
+    Returns
+    -------
+    dir: int
+        a numeric value that indicates which direction the drone should move
+    """
     dir = 0
-    if (cx < int(frameWidth / 2) - deadZone):
+    if (centerX < int(frameWidth / 2) - deadZone):
         cv2.putText(img, " GO LEFT ", (20, 50), cv2.FONT_HERSHEY_COMPLEX, 1, (0, 0, 255), 3)
         dir = 1
-    elif (cx > int(frameWidth / 2) + deadZone):
+    elif (centerX > int(frameWidth / 2) + deadZone):
         cv2.putText(img, " GO RIGHT ", (20, 50), cv2.FONT_HERSHEY_COMPLEX, 1, (0, 0, 255), 3)
         dir = 2
-    elif (cy < int(frameHeight / 2) - deadZone):
+    elif (centerY < int(frameHeight / 2) - deadZone):
         cv2.putText(img, " GO UP ", (20, 50), cv2.FONT_HERSHEY_COMPLEX, 1, (0, 0, 255), 3)
         dir = 3
-    elif (cy > int(frameHeight / 2) + deadZone):
+    elif (centerY > int(frameHeight / 2) + deadZone):
         cv2.putText(img, " GO DOWN ", (20, 50), cv2.FONT_HERSHEY_COMPLEX, 1, (0, 0, 255), 3)
         dir = 4
     return dir
@@ -202,6 +228,15 @@ def main(file_path, fps, width, height, marker_width, tello_name, camera_matrix)
 
     height : int
         height of camera image
+
+    marker_width: float 
+        the distance between point A and point B on an Apriltag
+
+    NEED TO FINISH MODIFYING.
+    tello_name: 
+
+    camera_matrix:
+    
 
     Returns
     -------
