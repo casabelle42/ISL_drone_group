@@ -191,7 +191,9 @@ def main(chessboard_size, frame_size, chessboard_square_size_mm):
 
     #added tello_name 
     tello_name = get_wifi_info()
-    telloimages_dir = f"telloImages_{tello_name}"
+    date_stamp = datetime.now().strftime("%Y%m%d")
+    telloimages_root_dir = f"telloImages_{tello_name}"
+    telloimages_dir = os.path.join(telloimages_root_dir, f"{date_stamp}")
     if not os.path.exists(telloimages_dir):
         os.makedirs(telloimages_dir)
     tello_drone = tello.Tello()
@@ -212,7 +214,9 @@ def main(chessboard_size, frame_size, chessboard_square_size_mm):
         if ret:
             imageFileName = os.path.join(telloimages_dir,f"{tello_name}{datetime.now()}.png")
             cv2.imwrite(imageFileName,img)
+            #we want to move this cv2.imshow so it is always showing what the drone sees
             cv2.imshow("Image", img)
+            #
             keycode = cv2.waitKey(5)
             if (keycode & 0xFF) == ord('q'):
                 break
@@ -224,8 +228,8 @@ def main(chessboard_size, frame_size, chessboard_square_size_mm):
     
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--chessboard_width", default=6, type=int)
-    parser.add_argument("--chessboard_height", default=6, type=int)
+    parser.add_argument("--chessboard_width", "-cw", default=6, type=int)
+    parser.add_argument("--chessboard_height", "-ch", default=6, type=int)
     parser.add_argument("--chessboard_square_size", default=18, type=int)
     parser.add_argument("--width", default=960, type=int)
     parser.add_argument("--height", default=720, type=int)
