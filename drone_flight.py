@@ -233,9 +233,11 @@ def main(file_path, fps, width, height, marker_width, tello_name, camera_matrix)
         the distance between point A and point B on an Apriltag
 
     NEED TO FINISH MODIFYING.
-    tello_name: 
+    tello_name: string
+        the wifi name of the Tello
 
-    camera_matrix:
+    camera_matrix: dictionary
+        calibration matrix 
     
 
     Returns
