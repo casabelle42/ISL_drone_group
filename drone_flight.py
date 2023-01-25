@@ -79,7 +79,7 @@ def get_distance_to_camera(irl_width, focal_length, pixel_width):
     Parameters
     ----------
     irl_width: float
-        real life width of the marker
+        real life width of the marker (mm)
     focal_length: float
         focal length of camera
     pixel_width: int
@@ -88,11 +88,11 @@ def get_distance_to_camera(irl_width, focal_length, pixel_width):
     Returns
     -------
     distance: float
-        distance from marker to camera
+        distance from marker to camera (mm)
     """
     distance = (irl_width * focal_length) / pixel_width
+    #Converts from mm to meters: distance_in_meters = distance * 1000
     return distance
-
 
 def get_apriltag_coords(a_tags):
     """function that returns list of apriltag center coordinates
@@ -145,11 +145,12 @@ def read_apriltags(frame, camera_matrix, marker_width):
     frame: image
         image to detect apriltags in
 
-    estimage_tag : boolean
-        flag to estimate tag pos
+    camera_matrix : dictionary
+        4 x 3 matrix used to describe a 3D scene
 
-    camera_pars : list
-        list of camera parameters to estimate the tag pos
+    marker_width : float
+        width of the april tag
+
     Returns
     -------
     results : object
@@ -160,7 +161,7 @@ def read_apriltags(frame, camera_matrix, marker_width):
         camera_pars = None
     else:
         estimate_tag = True
-        camera_pars = [camera_matrix['fx'], camera_matrix['fy'], camera_matrix['cx'], camera_matrix['cy']]
+        camera_pars = [camera_matrix["fx"], camera_matrix["fy"], camera_matrix["cx"], camera_matrix["cy"]]
         detector = apriltags.Detector(families='tag36h11')
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         results = detector.detect(gray, estimate_tag_pose=estimate_tag, camera_params=camera_pars, tag_size=marker_width)
@@ -248,7 +249,6 @@ def main(file_path, fps, width, height, marker_width, tello_name, camera_matrix)
     DEADZONE = 100
     # Variables
     
-
     focal_length = sqrt(camera_matrix["fx"] ** 2 + camera_matrix["fy"] ** 2)
 
     # create the video writer
@@ -376,5 +376,7 @@ if __name__ == "__main__":
     
 
     main(file_path, args.fps, args.width, args.height, args.marker_width, tello_name, camera_matrix)
+
+    ## Verify focal length is correct. Do pixel to mm with corner_width. Refer to stackoverflow sent in discord.
 
 
