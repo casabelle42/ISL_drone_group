@@ -71,7 +71,7 @@ from wifi_testing import get_wifi_info
 #################################################################################################
 
 
-def get_matrix(tello_name, chessboard_size, frame_size, chessboard_square_size_mm):
+def get_matrix(tello_name, chessboard_size, frame_size, chessboard_square_size_mm, img_location):
     """function that creates the camera calibration  matrix
 
         Parameters
@@ -90,8 +90,6 @@ def get_matrix(tello_name, chessboard_size, frame_size, chessboard_square_size_m
         -------
         None
         """
-    img_location = f"telloImages_{tello_name}"
-
     ################ FIND CHESSBOARD CORNERS - OBJECT POINTS AND IMAGE POINTS #############################
 
 
@@ -217,13 +215,13 @@ def main(chessboard_size, frame_size, chessboard_square_size_mm):
             #we want to move this cv2.imshow so it is always showing what the drone sees
             cv2.imshow("Image", img)
             #
-            keycode = cv2.waitKey(5)
-            if (keycode & 0xFF) == ord('q'):
-                break
+        keycode = cv2.waitKey(5)
+        if (keycode & 0xFF) == ord('q'):
+            break
         time.sleep(5)
     tello_drone.streamoff()
     cv2.destroyAllWindows()
-    get_matrix(tello_name, chessboard_size, frame_size, chessboard_square_size_mm)
+    get_matrix(tello_name, chessboard_size, frame_size, chessboard_square_size_mm, telloimages_dir)
     
     
 if __name__ == "__main__":
