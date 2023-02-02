@@ -1,71 +1,8 @@
-'''
-#################################################################################################
-#
-#
-#   Fayetteville State University Intelligence Systems Laboratory (FSU-ISL)
-#
-#   Mentors:
-#           Dr. Sambit Bhattacharya
-#           Catherine Spooner
-#
-#   File Name:
-#           wifi_testing.py
-#
-#   Programmers:
-#           Antonio Ball
-#           Ryan De Jesus
-#           Garrett Davis
-#           Kalsoom Bibi
-#           Santino Sini
-#           Daniel Bigler
-#           Taryn Rozier
-#           Ashley Sutherland
-#           Tyuss Handley
-#           Adriel Alvarez
-#           Malik Brock
-#           Raymond Poythress
-#
-#  Revision     Date                        Release Comment
-#  --------  ----------  ------------------------------------------------------
-#    1.0     01/12/2023  Initial Release
-#
-#  File Description
-#  ----------------
-#  This program determines which operating system 
-#  is being used and then prints out the Wifi name
-#  that is currently in use. Used to determine 
-#  drone name.
-#  
-#  
-#  *Classes/Functions organized by order of appearance
-#
-#  OUTSIDE FILES REQUIRED
-#  ----------------------
-#   None
-#
-#
-#  CLASSES
-#  -------
-#   None
-#
-#  FUNCTIONS
-#  ---------
-#   get_wifi_info
-#   main
-#
-'''
-#################################################################################################
-#Import Statements
-#################################################################################################
 import subprocess
 import platform
 
-#################################################################################################
-#Functions
-#################################################################################################
-
 def get_wifi_info():
-    """gets wifi info and returns a string
+    """gets wifi info and returns a dictionary
 
     Parameters
     ----------
@@ -73,18 +10,22 @@ def get_wifi_info():
     
     Returns
     -------
-    data: string
-         The ssid of the wifi connection
+    dictionary
+        a dictionary of the wifi information including ssid and such
     """
     #macOS get ssid
     if platform.system() == 'Darwin':
-        wifi = subprocess.check_output(['/System/Library/PrivateFrameworks/Apple80211.framework/Versions/Current/Resources/airport','--scan'])
+        wifi = subprocess.check_output(['/System/Library/PrivateFrameworks/Apple80211.framework/Versions/Current/Resources/airport','-I']).decode('utf-8', 'ignore')
+        datalist = wifi.split("\n")
+        datalist = [x.strip() for x in datalist if x if 'SSID' in x and 'BSSID' not in x]
+        datalist = datalist[0].split(':')
+        data = datalist[1].strip()
         
     #windows get ssid
     if platform.system() == 'Windows':
-        wifi = subprocess.check_output(['netsh', 'WLAN', 'show', 'interfaces'])
+        wifi = subprocess.check_output(['netsh', 'WLAN', 'show', 'interfaces']).decode('utf-8', 'ignore')
         # turn lines into a list by splitting by \r\n
-        datalist = data.split("\r\n")
+        datalist = wifi.split("\r\n")
         # remove any empty strings (multiple cases of \r\n)
         datalist = [x for x in datalist if x]
 
@@ -120,17 +61,6 @@ def get_wifi_info():
     
 
 def main():
-    """Calls get wifi info and prints the results
-
-
-    Parameters
-    ----------
-    None
-    
-    Returns
-    -------
-    None
-    """
     test = get_wifi_info()
     print(f"Wifi name is {test}")
 
