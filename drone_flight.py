@@ -92,7 +92,8 @@ def get_distance_to_camera(irl_width, focal_length, pixel_width):
     """
     #Returns in meters
     distance_meters = (irl_width * focal_length) / pixel_width
-    distance = distance_meters * 100
+    distance_cm = distance_meters * 100
+    distance = float(f'{distance_cm:.2f}')
     return distance
 
 def show_distance(img, distance):
