@@ -202,23 +202,25 @@ def main(chessboard_size, frame_size, chessboard_square_size_mm):
     counter = 0
     
 
-
     while True:
         framerad = tello_drone.get_frame_read()
         img = framerad.frame
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
         # Find the chess board corners
         ret, _ = cv2.findChessboardCorners(gray, chessboard_size, None)
+        print(ret)
         if ret:
-            imageFileName = os.path.join(telloimages_dir,f"{tello_name}{datetime.now()}.png")
+            #format datetime to YYYYMMDD
+            new_image_timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            imageFileName = os.path.join(telloimages_dir,f"{tello_name}_{new_image_timestamp}.png")
+            print(imageFileName)
             cv2.imwrite(imageFileName,img)
             #we want to move this cv2.imshow so it is always showing what the drone sees
             cv2.imshow("Image", img)
-            #
         keycode = cv2.waitKey(5)
         if (keycode & 0xFF) == ord('q'):
             break
-        time.sleep(5)
+        time.sleep(2)
     tello_drone.streamoff()
     cv2.destroyAllWindows()
     get_matrix(tello_name, chessboard_size, frame_size, chessboard_square_size_mm, telloimages_dir)
