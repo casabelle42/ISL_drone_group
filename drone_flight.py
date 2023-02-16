@@ -74,6 +74,12 @@ from wifi_testing import get_wifi_info
 #Functions
 #################################################################################################
 
+def move_through_gate(drone, marker_distance):
+    drone.move_down(50)
+    drone.move_right(39)
+    drone.move_forward(int(marker_distance) + 20)
+    #move forward marker_distance amount
+
 def get_distance_to_camera(irl_width, focal_length, pixel_width):
     """function that returns the distance from a measured to camera
     Parameters
@@ -254,7 +260,7 @@ def main(file_path, fps, width, height, marker_width, tello_name, camera_matrix)
     None
     """
     # CONSTANTS
-    DEADZONE = 100
+    DEADZONE = 30
     # Variables
     
 
@@ -280,13 +286,16 @@ def main(file_path, fps, width, height, marker_width, tello_name, camera_matrix)
         drone.takeoff()
 
     frame_counter = 0
+
+    marker_distance = 0
+
     while True:
 
         framerad = drone.get_frame_read()
         img = framerad.frame
         results = read_apriltags(img, camera_matrix, marker_width)
         centerCAM = (int(width / 2), int(height / 2))
-        direction = 0
+        direction = 7
 
         # SEND VELOCITY VALUES TO TELLO
         if results:
@@ -308,6 +317,12 @@ def main(file_path, fps, width, height, marker_width, tello_name, camera_matrix)
                 print(f"rotational matrix \n {results[0].pose_R}")
                 print(f"translational matrix \n {results[0].pose_t}")
 
+        cv2.circle(img, centerCAM, 5, (20, 30, 12), -1)
+        # if drone is centered change gate square from blue to green
+
+        out.write(img)
+        cv2.imshow("Image", img)
+
         frame_counter += 1
         #default
         left_right_velocity = 0
@@ -317,16 +332,16 @@ def main(file_path, fps, width, height, marker_width, tello_name, camera_matrix)
 
         if direction == 1:
             #left_right - is left, + is right
-            left_right_velocity = -20
+            left_right_velocity = -10
 
         elif direction == 2:
-            left_right_velocity = 20
+            left_right_velocity = 10
 
         elif direction == 3:
-            up_down_velocity = 20
+            up_down_velocity = 10
 
         elif direction == 4:
-            up_down_velocity = -20
+            up_down_velocity = -10
 
         else:
             left_right_velocity = 0
@@ -338,14 +353,14 @@ def main(file_path, fps, width, height, marker_width, tello_name, camera_matrix)
         if direction != 0:
             drone.send_rc_control(left_right_velocity, for_back_velocity, up_down_velocity, yaw_velocity)
             time.sleep(.025)
+        else:
+            move_through_gate(drone, marker_distance)
+            break
+
 
         print(dir)
 
-        cv2.circle(img, centerCAM, 5, (20, 30, 12), -1)
-        # if drone is centered change gate square from blue to green
 
-        out.write(img)
-        cv2.imshow("Image", img)
         keycode = cv2.waitKey(5)
         if (keycode & 0xFF) == ord('q'):
             break
