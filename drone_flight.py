@@ -214,6 +214,8 @@ def get_direction(centerX, centerY, img, frameWidth, frameHeight, deadZone):
     elif (centerY > int(frameHeight / 2) + deadZone):
         cv2.putText(img, " GO DOWN ", (20, 50), cv2.FONT_HERSHEY_COMPLEX, 1, (0, 0, 255), 3)
         dir = 4
+    else:
+        cv2.putText(img, "No change ", (20, 50), cv2.FONT_HERSHEY_COMPLEX, 1, (0, 0, 255), 3)
     return dir
 
 
@@ -263,7 +265,7 @@ def main(file_path, fps, width, height, marker_width, tello_name, camera_matrix)
     out = cv2.VideoWriter(file_path, FOURCC, fps, (width, height), True)
 
     # Counter
-    testDrone = True  # False for flight, True for testing (flight disabled)
+    testDrone = False  # False for flight, True for testing (flight disabled)
 
     # connect to the tello
     drone = tello.Tello()
@@ -307,29 +309,36 @@ def main(file_path, fps, width, height, marker_width, tello_name, camera_matrix)
                 print(f"translational matrix \n {results[0].pose_t}")
 
         frame_counter += 1
+        #default
+        left_right_velocity = 0
+        for_back_velocity = 0
+        up_down_velocity = 0
+        yaw_velocity = 0
 
         if direction == 1:
-            drone.left_right_velocity = -20
+            #left_right - is left, + is right
+            left_right_velocity = -20
 
         elif direction == 2:
-            drone.left_right_velocity = 20
+            left_right_velocity = 20
 
         elif direction == 3:
-            drone.up_down_velocity = 20
+            up_down_velocity = 20
 
         elif direction == 4:
-            drone.up_down_velocity = -20
+            up_down_velocity = -20
 
         else:
-            drone.left_right_velocity = 0
-            drone.for_back_velocity = 0
-            drone.up_down_velocity = 0
-            drone.yaw_velocity = 0
+            left_right_velocity = 0
+            for_back_velocity = 0
+            up_down_velocity = 0
+            yaw_velocity = 0
 
         # SEND VELOCITY VALUES TO TELLO
-        if drone.send_rc_control:
-            drone.send_rc_control(drone.left_right_velocity, drone.for_back_velocity, drone.up_down_velocity,
-                                  drone.yaw_velocity)
+        if direction != 0:
+            drone.send_rc_control(left_right_velocity, for_back_velocity, up_down_velocity, yaw_velocity)
+            time.sleep(.025)
+
         print(dir)
 
         cv2.circle(img, centerCAM, 5, (20, 30, 12), -1)
@@ -339,7 +348,6 @@ def main(file_path, fps, width, height, marker_width, tello_name, camera_matrix)
         cv2.imshow("Image", img)
         keycode = cv2.waitKey(5)
         if (keycode & 0xFF) == ord('q'):
-            # tello.land()
             break
 
     out.release()
