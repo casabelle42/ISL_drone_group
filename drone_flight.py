@@ -75,10 +75,20 @@ from wifi_testing import get_wifi_info
 #################################################################################################
 
 def move_through_gate(drone, marker_distance):
-    drone.move_down(50)
-    drone.move_right(39)
-    drone.move_forward(int(marker_distance) + 20)
-    #move forward marker_distance amount
+    #drone.move_down(50)
+    #drone.move_right(39)
+    min_distance = 7
+    #min_height = 1
+    #cam_tilt = 7.88
+    distance = marker_distance + 20
+    height = int(distance / min_distance)
+    print(height)
+    print("move forward")
+    drone.move_down(height)
+    drone.move_forward(int(marker_distance))
+    #move forward marker_distance 
+    
+
 
 def get_distance_to_camera(irl_width, focal_length, pixel_width):
     """function that returns the distance from a measured to camera
@@ -128,7 +138,7 @@ def get_apriltag_coords(a_tags):
     return a_tag_centers
 
 
-def find_box(a_tag):
+def find_box(a_tags):
     """function that will find the corners of the april tag
     Parameters
     ----------
@@ -140,14 +150,62 @@ def find_box(a_tag):
     four_corners : tuple
         four corners of the april tag
     """
+    for tag in a_tags:
+        ptA, ptB, ptC, ptD = tag.corners
+        ptA = (int(ptA[0]), int(ptA[1]))
+        ptB = (int(ptB[0]), int(ptB[1]))
+        ptC = (int(ptC[0]), int(ptC[1]))
+        ptD = (int(ptD[0]), int(ptD[1]))
+        four_corners = (ptA, ptB, ptC, ptD)
+        return four_corners
 
-    ptA, ptB, ptC, ptD = a_tag.corners
-    ptA = (int(ptA[0]), int(ptA[1]))
-    ptB = (int(ptB[0]), int(ptB[1]))
-    ptC = (int(ptC[0]), int(ptC[1]))
-    ptD = (int(ptD[0]), int(ptD[1]))
-    four_corners = (ptA, ptB, ptC, ptD)
-    return four_corners
+def draw_box(a_tag_centers, img):
+    """function that will draw a box and midpoint of the box with given april tag list
+    Parameters
+    ----------
+    a_tag_centers: list 
+        list of centers of apriltags
+    
+    img : image
+        image to be manipulated
+    
+    Returns
+    -------
+    img : image
+        image that was manipulated
+    center : tuple
+        center of the apriltag array
+    """  
+    
+    center_array = np.array(a_tag_centers)
+    pt_a = int(min(center_array[:, 0])), int(max(center_array[:, 1]))  
+    pt_b = int(min(center_array[:, 0])), int(min(center_array[:, 1]))
+    pt_c = int(max(center_array[:, 0])), int(min(center_array[:, 1]))
+    pt_d = int(max(center_array[:, 0])), int(max(center_array[:, 1])) 
+    center_x = int((max(center_array[:, 0]) + min(center_array[:, 0]))/2)
+    center_y = int((max(center_array[:, 1]) + min(center_array[:, 1]))/2)
+    center = (center_x, center_y)
+    cv2.line(img, pt_a, pt_b, (255, 0, 0), 4)
+    cv2.line(img, pt_b, pt_c, (255, 0, 0), 4)
+    cv2.line(img, pt_c, pt_d, (255, 0, 0), 4)
+    cv2.line(img, pt_d, pt_a, (255, 0, 0), 4)
+    return img, center
+
+'''def just_box(a_tag_centers):    
+    center_array = np.array(a_tag_centers)
+    pt_a = int(min(center_array[:, 0])), int(max(center_array[:, 1]))
+    pt_b = int(min(center_array[:, 0])), int(min(center_array[:, 1]))
+    pt_c = int(max(center_array[:, 0])), int(min(center_array[:, 1]))
+    pt_d = int(max(center_array[:, 0])), int(max(center_array[:, 1]))
+    length_box = ((pt_b[0] - pt_a[0]) ** 2 + (pt_b[1] - pt_a[1]) ** 2)
+    width_box = ((pt_c[0] - pt_b[0]) ** 2 + (pt_c[1] - pt_b[1]) ** 2)
+    return pt_a, length_box, width_box'''
+
+def find_triangle(point1, point2):
+        triangle_width = abs(np.subtract(point1, point2))
+        triangle_width = sqrt(triangle_width[0]**2 + triangle_width[1]**2)
+        return triangle_width
+
 
 
 def read_apriltags(frame, camera_matrix, marker_width):
@@ -259,8 +317,9 @@ def main(file_path, fps, width, height, marker_width, tello_name, camera_matrix)
     -------
     None
     """
+
     # CONSTANTS
-    DEADZONE = 30
+    DEADZONE = 15
     # Variables
     
 
@@ -294,28 +353,35 @@ def main(file_path, fps, width, height, marker_width, tello_name, camera_matrix)
         framerad = drone.get_frame_read()
         img = framerad.frame
         results = read_apriltags(img, camera_matrix, marker_width)
-        centerCAM = (int(width / 2), int(height / 2))
+        centerCAM = (int(width / 2), int(275))
         direction = 7
 
         # SEND VELOCITY VALUES TO TELLO
         if results:
             print(f"frame {frame_counter}")
-            if len(results) == 1:
-                pA, pB, pC, pD = find_box(results[0])
-                # get width of box corners (pA, pB)
-                corner_width = abs(np.subtract(pB, pA))
-                corner_width = sqrt(corner_width[0]**2 + corner_width[1]**2)
-                marker_distance = get_distance_to_camera(marker_width, focal_length, corner_width)
-                show_distance(img, marker_distance)
-                print("marker distance", marker_distance)
-                
-                centerX = int(results[0].center[0])
-                centerY = int(results[0].center[1])
-                cv2.line(img, (centerX, centerY), centerCAM, (123, 255, 123), 2)
-                cv2.circle(img, (centerX, centerY), 5, (255, 30, 12), -1)
-                direction = get_direction(centerX, centerY, img, width, height, DEADZONE)
-                print(f"rotational matrix \n {results[0].pose_R}")
-                print(f"translational matrix \n {results[0].pose_t}")
+
+            centers = get_apriltag_coords(results)
+            #centers of apriltags
+            corners = find_box(results)
+            #corners of apriltags
+
+            img, box_center = draw_box(centers, img)
+            # DIFFERENT FROM FIND_BOX, this draws the box. Find_box gets corners from apriltags.
+            top_triangle = find_triangle(corners[0], corners[1])
+            bottom_triangle = find_triangle(corners[2], corners[3])
+            avg_triangle = (top_triangle + bottom_triangle) / 2
+            centerX = int(box_center[0])
+            centerY = int(box_center[1])
+            marker_distance = get_distance_to_camera(marker_width, focal_length, avg_triangle)
+            show_distance(img, marker_distance)
+            print("marker distance", marker_distance)
+            cv2.line(img, (centerX, centerY), centerCAM, (123, 255, 123), 2)
+            cv2.circle(img, (centerX, centerY), 5, (255, 30, 12), -1)
+            direction = get_direction(centerX, centerY, img, width, height, DEADZONE)
+            print(f"rotational matrix \n {results[0].pose_R}")
+            print(f"translational matrix \n {results[0].pose_t}")
+        #else:
+            #drone.move_back(5)
 
         cv2.circle(img, centerCAM, 5, (20, 30, 12), -1)
         # if drone is centered change gate square from blue to green
@@ -330,30 +396,26 @@ def main(file_path, fps, width, height, marker_width, tello_name, camera_matrix)
         up_down_velocity = 0
         yaw_velocity = 0
 
+
         if direction == 1:
             #left_right - is left, + is right
-            left_right_velocity = -10
+            left_right_velocity = -8
 
         elif direction == 2:
-            left_right_velocity = 10
+            left_right_velocity = 8
 
         elif direction == 3:
-            up_down_velocity = 10
+            up_down_velocity = 12
 
         elif direction == 4:
-            up_down_velocity = -10
-
-        else:
-            left_right_velocity = 0
-            for_back_velocity = 0
-            up_down_velocity = 0
-            yaw_velocity = 0
+            up_down_velocity = -12
 
         # SEND VELOCITY VALUES TO TELLO
         if direction != 0:
             drone.send_rc_control(left_right_velocity, for_back_velocity, up_down_velocity, yaw_velocity)
-            time.sleep(.025)
+
         else:
+            #drone.move_down(40)
             move_through_gate(drone, marker_distance)
             break
 
